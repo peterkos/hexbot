@@ -4,14 +4,26 @@ import UIKit
 import PlaygroundSupport
 
 
-struct NoopColors: Decodable {
-	var colors: [[String: String]]
+
+struct Noop: Decodable {
+	var colors: [NoopColor]
+}
+
+struct NoopColor: Decodable {
+	var value: String
+	var coordinates: Coordiante?
+
+}
+
+struct Coordiante: Decodable {
+	var x: Int
+	var y: Int
 }
 
 class MyViewController : UIViewController {
 
 
-	var colors: NoopColors?
+	var noop: Noop?
 
 	override func loadView() {
         let view = UIView()
@@ -25,16 +37,24 @@ class MyViewController : UIViewController {
         view.addSubview(label)
         self.view = view
 
-		getColors { (colors) in
-			print("got the colors!")
-			print(colors)
+		getNoop { (noop) in
+			print("got the noop!")
+			self.noop = noop
+
+			guard let noop = noop else {
+				return
+			}
+
+			// Let's do some things!
+			let firstColor = noop.colors.first!
+
+			// @TODO: convert to UIColor... somehow. Bit shifting?
+			print(firstColor.value)
 		}
-
-
 
     }
 
-	func getColors(completionBlock: @escaping (NoopColors) -> Void) {
+	func getNoop(completionBlock: @escaping (Noop?) -> Void) {
 		let noopsURL = URL(string: "https://api.noopschallenge.com/hexbot")!
 		let task = URLSession.shared.dataTask(with: noopsURL) { (data, response, error) in
 			if let error = error {
@@ -53,8 +73,8 @@ class MyViewController : UIViewController {
 			let decoder = JSONDecoder()
 
 			do {
-				let colors = try decoder.decode(NoopColors.self, from: data)
-				completionBlock(colors)
+				let noop = try decoder.decode(Noop.self, from: data)
+				completionBlock(noop)
 
 			} catch {
 				print("Unable to decode JSON")
