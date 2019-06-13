@@ -46,10 +46,14 @@ class MyViewController : UIViewController {
 			}
 
 			// Let's do some things!
-			let firstColor = noop.colors.first!
 
-			// @TODO: convert to UIColor... somehow. Bit shifting?
-			print(firstColor.value)
+			// Grab the color
+			let firstColor = UIColor(hexString: noop.colors.first!.value)
+
+			DispatchQueue.main.async() {
+				// Set the text color, on the main thread of course
+				label.backgroundColor = firstColor
+			}
 		}
 
     }
@@ -80,8 +84,34 @@ class MyViewController : UIViewController {
 				print("Unable to decode JSON")
 			}
 
-			}.resume()
+			}
+		task.resume()
 	}
 }
 // Present the view controller in the Live View window
 PlaygroundPage.current.liveView = MyViewController()
+
+
+
+// UIKIt doesn't have an easy way to turn a hex string into a UIColor (!?!?!)
+// So, the Internet comes to the rescue!
+// src: https://gist.github.com/benhurott/d0ec9b3eac25b6325db32b8669196140 (modified slightly)
+extension UIColor {
+	convenience init(hexString: String) {
+		let hex = hexString.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+		var int = UInt32()
+		Scanner(string: hex).scanHexInt32(&int)
+		let a, r, g, b: UInt32
+		switch hex.count {
+		case 3: // RGB (12-bit)
+			(a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+		case 6: // RGB (24-bit)
+			(a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+		case 8: // ARGB (32-bit)
+			(a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+		default:
+			(a, r, g, b) = (255, 0, 0, 0)
+		}
+		self.init(red: CGFloat(r) / 255, green: CGFloat(g) / 255, blue: CGFloat(b) / 255, alpha: CGFloat(a) / 255)
+	}
+}
